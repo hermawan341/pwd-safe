@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Save, Safe</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        :root {
+            /* Warna Tema Terang ala Saweria */
+            --bg-color: #f9fafb;
+            --card-bg: #ffffff;
+            --primary: #f59e0b; /* Warna kuning emas/amber khas bersih */
+            --primary-hover: #d97706;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --danger: #ef4444;
+            --border-color: #e5e7eb;
+            --font-main: 'IBM Plex Mono', monospace;
+            --font-sub: 'Inter', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-sub);
+            /* Menghilangkan efek biru saat di-tap/klik di HP */
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            /* Mencegah seleksi teks biru sembarangan */
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+
+        /* Mengizinkan ketik di input */
+        input, textarea, select {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        h1, h2, h3, .mono {
+            font-family: var(--font-main);
+        }
+
+        /* Layar Login */
+        #login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+            transition: opacity 0.5s ease;
+            background-color: var(--bg-color);
+        }
+        #login-screen h1 {
+            color: var(--text-main);
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+        .login-card {
+            background: var(--card-bg);
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Layout Utama */
+        #main-app {
+            display: none;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+        }
+        .profile-btn {
+            background: var(--bg-color);
+            border: 2px solid var(--border-color);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            overflow: hidden;
+            transition: 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .profile-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Navigasi / Tab */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            background: var(--border-color);
+            padding: 6px;
+            border-radius: 12px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--text-main);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Konten Tab */
+        .tab-content {
+            display: none;
+            animation: slideUp 0.4s ease forwards;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form & Cards */
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        .form-group {
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+        label {
+            margin-bottom: 8px;
+            color: var(--text-main);
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-size: 1em;
+            transition: 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            background: var(--card-bg);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 5px;
+            transition: 0.3s;
+            box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-danger { background: var(--danger); box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-outline { 
+            background: transparent; 
+            border: 2px solid var(--border-color); 
+            color: var(--text-main); 
+            box-shadow: none;
+        }
+        .btn-outline:hover { background: var(--bg-color); border-color: #d1d5db; }
+
+        /* Item List (Password & Logs) */
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .list-item:last-child { border-bottom: none; }
+        .item-info h3 { font-size: 1.05em; color: var(--text-main); margin-bottom: 4px; }
+        .item-info p { font-size: 0.85em; color: var(--text-muted); }
+        .item-actions {
+            display: flex;
+            gap: 15px;
+        }
+        .item-actions button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .item-actions button:hover { color: var(--primary); transform: scale(1.1); }
+        .btn-del:hover { color: var(--danger) !important; }
+
+        /* Pengaturan (Modal Overlay) */
+        #settings-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            z-index: 100;
+            padding: 20px;
+            overflow-y: auto;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            max-width: 600px;
+            margin: 0 auto 25px;
+        }
+        .settings-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .close-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            color: var(--text-main);
+            font-size: 1.2em;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* Notifikasi Toast */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #222;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 0.9em;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            white-space: nowrap;
+        }
+
+        /* Indikator Demo */
+        #demo-badge {
+            display: none;
+            background: var(--danger);
+            color: white;
+            font-size: 0.7em;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-card">
+            <h1 class="mono"><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> PwdSafe</h1>
+            <p style="color: var(--text-muted); margin-bottom: 30px; font-size: 0.9em;">Simpan kata sandi dengan aman.</p>
+            
+            <div id="g_id_onload"
+                 data-client_id="MASUKKAN_CLIENT_ID_KAMU_DISINI"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleGoogleLogin"
+                 data-auto_prompt="true">
+            </div>
+            <div class="g_id_signin" data-type="standard" style="margin: 0 auto;"></div>
+
+            <div style="margin: 25px 0; display: flex; align-items: center; color: var(--border-color);">
+                <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+                <span style="padding: 0 10px; color: var(--text-muted); font-size: 0.8em;">Atau lihat fitur</span>
+                <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+            </div>
+
+            <button class="btn btn-outline" onclick="mockLogin()" style="width: 100%;">
+                <i class="fa-solid fa-eye"></i> Mode Demo (Hanya Lihat)
+            </button>
+        </div>
+    </div>
+
+    <div id="main-app">
+        <header>
+            <h2 class="mono" style="font-size: 1.3em;">
+                <i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Safe<span id="demo-badge">DEMO</span>
+            </h2>
+            <div class="profile-btn" onclick="openSettings()" id="header-profile-pic">
+                <i class="fa-solid fa-user"></i>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('simpan', this)"><i class="fa-solid fa-plus"></i> Simpan</button>
+            <button class="tab-btn" onclick="switchTab('lihat', this)"><i class="fa-solid fa-list"></i> Lihat</button>
+            <button class="tab-btn" onclick="switchTab('log', this)"><i class="fa-solid fa-clock-rotate-left"></i> Log</button>
+        </div>
+
+        <div id="tab-simpan" class="tab-content active">
+            <div class="card">
+                <div class="form-group">
+                    <label>Pilih Platform</label>
+                    <select id="platform-select" onchange="checkCustomPlatform()">
+                        <option value="Mobile Legends">Mobile Legends</option>
+                        <option value="Free Fire">Free Fire</option>
+                        <option value="TikTok">TikTok</option>
+                        <option value="YouTube">YouTube</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="X">X (Twitter)</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Telegram">Telegram</option>
+                        <option value="custom">-- Lainnya (Ketik Sendiri) --</option>
+                    </select>
+                </div>
+                <div class="form-group" id="custom-platform-group" style="display: none;">
+                    <label>Nama Platform</label>
+                    <input type="text" id="custom-platform" placeholder="Contoh: GitHub">
+                </div>
+                <div class="form-group">
+                    <label>Username / Email</label>
+                    <input type="text" id="acc-username" placeholder="Masukkan username/email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="acc-password" placeholder="Masukkan password">
+                </div>
+                <button class="btn" onclick="savePassword()"><i class="fa-solid fa-floppy-disk"></i> Simpan Password</button>
+            </div>
+        </div>
+
+        <div id="tab-lihat" class="tab-content">
+            <div class="card" style="margin-bottom: 15px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="mono" style="font-size: 1em;">Data Tersimpan</h3>
+                <button class="btn btn-outline" style="width: auto; margin:0; padding: 6px 12px; font-size: 0.85em; border-radius: 8px;" onclick="downloadData()">
+                    <i class="fa-solid fa-download"></i> Unduh .txt
+                </button>
+            </div>
+            <div class="card" id="password-list" style="padding: 0; overflow: hidden;">
+                </div>
+        </div>
+
+        <div id="tab-log" class="tab-content">
+            <div class="card" id="log-list" style="padding: 0; overflow: hidden;">
+                </div>
+        </div>
+    </div>
+
+    <div id="settings-modal">
+        <div class="settings-header">
+            <h2 class="mono" style="font-size: 1.3em;"><i class="fa-solid fa-gear"></i> Pengaturan</h2>
+            <button class="close-btn" onclick="closeSettings()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="settings-content">
+            <div class="card" style="text-align: center; border: none; background: transparent; box-shadow: none; padding-bottom: 0;">
+                <div class="profile-btn" style="width: 90px; height: 90px; margin: 0 auto 15px; font-size: 2.5em;" id="settings-profile-pic">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <input type="file" id="file-upload" accept="image/*" style="display: none;" onchange="uploadImage(event)">
+                <button class="btn btn-outline" onclick="triggerUpload()" style="width: auto; padding: 8px 20px; font-size: 0.85em; border-radius: 20px;">Ubah Foto</button>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div style="background: var(--bg-color); padding: 12px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                    <p style="color: var(--text-muted); font-size: 0.85em;"><i class="fa-solid fa-envelope"></i> <span id="display-email">Akun Tersambung</span></p>
+                </div>
+                <div class="form-group">
+                    <label>Nama Tampilan</label>
+                    <input type="text" id="set-name" placeholder="Nama Kamu">
+                </div>
+                <div class="form-group">
+                    <label>Bio</label>
+                    <textarea id="set-bio" rows="2" placeholder="Tulis bio singkat..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Link WhatsApp</label>
+                    <input type="text" id="set-wa" placeholder="wa.me/628...">
+                </div>
+                <button class="btn" onclick="saveProfile()"><i class="fa-solid fa-check"></i> Simpan Perubahan</button>
+            </div>
+
+            <div class="card">
+                <h3 class="mono" style="margin-bottom: 10px; font-size: 1em; color: var(--text-main);"><i class="fa-solid fa-bell" style="color: var(--primary);"></i> Info Sistem</h3>
+                <p style="font-size: 0.9em; color: var(--text-muted);" id="last-login-info">Belum ada data aktivitas login.</p>
+            </div>
+
+            <div class="card">
+                <button class="btn btn-outline" style="margin-bottom: 10px;" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Log Out)</button>
+                <button class="btn btn-danger" onclick="deleteAccount()"><i class="fa-solid fa-trash-can"></i> Hapus Akun & Semua Data</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">Berhasil disimpan!</div>
+
+    <script>
+        // Mematikan klik kanan di seluruh dokumen
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // Data Storage & State
+        let isDemoMode = false;
+        let passwords = JSON.parse(localStorage.getItem('ps_passwords')) || [];
+        let logs = JSON.parse(localStorage.getItem('ps_logs')) || [];
+        let profile = JSON.parse(localStorage.getItem('ps_profile')) || {
+            name: '', bio: '', wa: '', image: '', lastLogin: ''
+        };
+
+        // UI Functions
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 2500);
+        }
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            btnElement.classList.add('active');
+            if(tabId === 'lihat') renderPasswords();
+            if(tabId === 'log') renderLogs();
+        }
+
+        // Cek apakah fitur dibatasi demo
+        function isDemoRestricted() {
+            if(isDemoMode) {
+                showToast("Mode Demo: Fitur ini tidak bisa digunakan.");
+                return true;
+            }
+            return false;
+        }
+
+        // Login System
+        function handleGoogleLogin(response) {
+            isDemoMode = false;
+            document.getElementById('demo-badge').style.display = 'none';
+            processLogin("Login Google Asli");
+        }
+        function mockLogin() {
+            isDemoMode = true;
+            document.getElementById('demo-badge').style.display = 'inline-block';
+            processLogin("Masuk Mode Demo");
+        }
+        function processLogin(statusMsg) {
+            const now = new Date().toLocaleString('id-ID');
+            profile.lastLogin = `Terakhir Login: ${now}`;
+            addLog(`${statusMsg} pada ${now}`);
+            if(!isDemoMode) localStorage.setItem('ps_profile', JSON.stringify(profile));
+            
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            setTimeout(() => document.getElementById('main-app').style.opacity = '1', 50);
+            updateProfileUI();
+            
+            if(isDemoMode) {
+                setTimeout(() => showToast("Anda berada di Mode Demo (Hanya Lihat)"), 1000);
+            }
+        }
+
+        // Save Password
+        function checkCustomPlatform() {
+            const val = document.getElementById('platform-select').value;
+            document.getElementById('custom-platform-group').style.display = (val === 'custom') ? 'block' : 'none';
+        }
+
+        function savePassword() {
+            if(isDemoRestricted()) return;
+
+            const selectVal = document.getElementById('platform-select').value;
+            const platform = selectVal === 'custom' ? document.getElementById('custom-platform').value : selectVal;
+            const user = document.getElementById('acc-username').value;
+            const pass = document.getElementById('acc-password').value;
+
+            if(!platform || !user || !pass) return showToast("Mohon isi semua data!");
+
+            passwords.push({ id: Date.now(), platform, user, pass });
+            localStorage.setItem('ps_passwords', JSON.stringify(passwords));
+            addLog(`Menambahkan password baru: ${platform}`);
+            
+            document.getElementById('acc-username').value = '';
+            document.getElementById('acc-password').value = '';
+            document.getElementById('custom-platform').value = '';
+            showToast("Password Disimpan!");
+        }
+
+        // Edit Password
+        function editPassword(id) {
+            if(isDemoRestricted()) return;
+            
+            const p = passwords.find(x => x.id === id);
+            if(!p) return;
+
+            // Masukkan data ke form simpan
+            document.getElementById('platform-select').value = 'custom';
+            document.getElementById('custom-platform-group').style.display = 'block';
+            document.getElementById('custom-platform').value = p.platform;
+            document.getElementById('acc-username').value = p.user;
+            document.getElementById('acc-password').value = p.pass;
+
+            // Pindah ke tab simpan
+            switchTab('simpan', document.querySelector('.tab-btn[onclick*="simpan"]'));
+            
+            // Hapus data lama agar terganti saat di-save ulang
+            passwords = passwords.filter(x => x.id !== id);
+            localStorage.setItem('ps_passwords', JSON.stringify(passwords));
+            addLog(`Mengedit data platform: ${p.platform}`);
+            showToast("Silakan edit lalu klik simpan");
+        }
+
+        // Render Data
+        function renderPasswords() {
+            const container = document.getElementById('password-list');
+            container.innerHTML = '';
+            if(passwords.length === 0) return container.innerHTML = '<p style="padding: 25px; text-align:center; color: var(--text-muted);">Belum ada data disimpan.</p>';
+
+            passwords.forEach(p => {
+                container.innerHTML += `
+                    <div class="list-item">
+                        <div class="item-info">
+                            <h3 class="mono">${p.platform}</h3>
+                            <p><i class="fa-regular fa-user" style="margin-right:5px; font-size:0.9em;"></i> ${p.user}</p>
+                        </div>
+                        <div class="item-actions">
+                            <button title="Salin" onclick="copyData('${p.user}', '${p.pass}', '${p.platform}')"><i class="fa-regular fa-copy"></i></button>
+                            <button title="Edit" onclick="editPassword(${p.id})"><i class="fa-solid fa-pen"></i></button>
+                            <button title="Hapus" class="btn-del" onclick="deletePassword(${p.id}, '${p.platform}')"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function copyData(u, p, platform) {
+            navigator.clipboard.writeText(`Username: ${u} \nPassword: ${p}`);
+            addLog(`Menyalin info login platform: ${platform}`);
+            showToast("Disalin ke clipboard!");
+        }
+
+        function deletePassword(id, plat) {
+            if(isDemoRestricted()) return;
+            if(!confirm(`Yakin ingin menghapus password ${plat}?`)) return;
+            
+            passwords = passwords.filter(p => p.id !== id);
+            localStorage.setItem('ps_passwords', JSON.stringify(passwords));
+            addLog(`Menghapus data platform: ${plat}`);
+            renderPasswords();
+            showToast("Data dihapus!");
+        }
+
+        function downloadData() {
+            if(isDemoRestricted()) return;
+            if(passwords.length === 0) return showToast("Tidak ada data untuk diunduh!");
+            
+            let txt = "=== DAFTAR PASSWORD (PWDSafe) ===\n\n";
+            passwords.forEach(p => txt += `Platform: ${p.platform}\nUser: ${p.user}\nPass: ${p.pass}\n\n`);
+            
+            const blob = new Blob([txt], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "MyPasswords.txt";
+            link.click();
+            addLog("Mengunduh backup data (.txt)");
+        }
+
+        // Logs System
+        function addLog(msg) {
+            if(isDemoMode && !msg.includes('Demo')) return; // Jangan simpan log di memori kalau demo
+            const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            logs.unshift(`[${time}] ${msg}`);
+            if(logs.length > 30) logs.pop(); // Max 30 logs
+            if(!isDemoMode) localStorage.setItem('ps_logs', JSON.stringify(logs));
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('log-list');
+            container.innerHTML = '';
+            if(logs.length === 0) return container.innerHTML = '<p style="padding: 25px; text-align:center; color: var(--text-muted);">Belum ada aktivitas terekam.</p>';
+            logs.forEach(l => {
+                container.innerHTML += `<div class="list-item" style="font-size: 0.85em; color: var(--text-muted); padding: 12px 20px;"><i class="fa-solid fa-circle" style="font-size:0.5em; margin-right:10px; color:var(--border-color);"></i> ${l}</div>`;
+            });
+        }
+
+        // Profile & Settings
+        function openSettings() {
+            document.getElementById('settings-modal').style.display = 'block';
+            document.getElementById('set-name').value = profile.name;
+            document.getElementById('set-bio').value = profile.bio;
+            document.getElementById('set-wa').value = profile.wa;
+            document.getElementById('last-login-info').innerText = profile.lastLogin || "Belum ada aktivitas.";
+        }
+        function closeSettings() {
+            document.getElementById('settings-modal').style.display = 'none';
+        }
+
+        function saveProfile() {
+            if(isDemoRestricted()) return;
+            profile.name = document.getElementById('set-name').value;
+            profile.bio = document.getElementById('set-bio').value;
+            profile.wa = document.getElementById('set-wa').value;
+            localStorage.setItem('ps_profile', JSON.stringify(profile));
+            addLog("Memperbarui profil akun");
+            showToast("Profil diperbarui!");
+            updateProfileUI();
+            closeSettings();
+        }
+
+        function triggerUpload() {
+            if(isDemoRestricted()) return;
+            document.getElementById('file-upload').click();
+        }
+
+        function uploadImage(event) {
+            const file = event.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profile.image = e.target.result;
+                    localStorage.setItem('ps_profile', JSON.stringify(profile));
+                    updateProfileUI();
+                    addLog("Mengubah foto profil");
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateProfileUI() {
+            const imgHTML = profile.image ? `<img src="${profile.image}">` : `<i class="fa-solid fa-user"></i>`;
+            document.getElementById('header-profile-pic').innerHTML = imgHTML;
+            document.getElementById('settings-profile-pic').innerHTML = imgHTML;
+        }
+
+        // Akun Actions
+        function logout() {
+            addLog("User melakukan Log Out dari sesi browser");
+            location.reload();
+        }
+
+        function deleteAccount() {
+            if(isDemoRestricted()) return;
+            if(confirm("PERINGATAN! Semua data, profil, dan password akan terhapus permanen dari browser ini. Lanjutkan?")) {
+                localStorage.removeItem('ps_passwords');
+                localStorage.removeItem('ps_logs');
+                localStorage.removeItem('ps_profile');
+                location.reload();
+            }
+        }
+
+        // Init load
+        updateProfileUI();
+    </script>
+</body>
+</html>
